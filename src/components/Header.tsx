@@ -39,9 +39,9 @@ export default function Header() {
 							strokeWidth="2"
 						/>
 					</svg>
-					<h1 className="text-sm font-semibold tracking-wide">
+					<div className="text-sm font-semibold tracking-wide">
 						<span className="text-primary">Chunk</span>Audio
-					</h1>
+					</div>
 				</div>
 
 				<Badge

@@ -4,15 +4,69 @@
     <meta charset="utf-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Chunk Audio" />
+    <meta name="theme-color" content="#19191c" />
+    <meta name="description" content="Split and edit audio in your browser. Make timed chunks or manual cuts, rearrange segments, and export MP3, WAV, or OGG files in a ZIP. Audio stays on your device." />
+    <link rel="canonical" href="https://chunkaudio.briansunter.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chunk Audio" />
+    <meta property="og:url" content="https://chunkaudio.briansunter.com/" />
+    <meta property="og:title" content="Browser Audio Splitter &amp; Editor | Chunk Audio" />
+    <meta property="og:description" content="Split and edit audio in your browser. Make timed chunks or manual cuts, rearrange segments, and export MP3, WAV, or OGG files in a ZIP. Audio stays on your device." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Browser Audio Splitter &amp; Editor | Chunk Audio" />
+    <meta name="twitter:description" content="Split and edit audio in your browser. Make timed chunks or manual cuts, rearrange segments, and export MP3, WAV, or OGG files in a ZIP. Audio stays on your device." />
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="manifest" href="/manifest.json" />
-    <title>Chunk Audio</title>
+    <title>Browser Audio Splitter &amp; Editor | Chunk Audio</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Chunk Audio",
+        "url": "https://chunkaudio.briansunter.com/",
+        "description": "A browser-based audio splitter and editor for time-based chunks and manual waveform cuts.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any"
+      }
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <noscript><p>Enable JavaScript to use the audio editor. Audio files are processed locally in your browser.</p></noscript>
+    <div id="root">
+      <main class="app-main">
+        <section class="landing-shell" aria-labelledby="page-title">
+          <div class="landing-copy">
+            <p class="landing-kicker">In-browser audio tools</p>
+            <h1 class="landing-title" id="page-title">Split and edit audio in your browser</h1>
+            <p class="landing-description">Chunk Audio is a browser-based audio splitter and editor. Divide long recordings into time-based chunks or make precise cuts on a waveform, arrange segments, and download your work as a ZIP.</p>
+          </div>
+          <p class="landing-state">Add an MP3, WAV, OGG, FLAC, M4A, or AAC file to get started.</p>
+          <div class="landing-details">
+            <section class="landing-detail">
+              <h2>How to split an audio file</h2>
+              <ol class="landing-steps">
+                <li><strong>Choose a file.</strong> Open an audio recording from your device. The editor reads it in your browser.</li>
+                <li><strong>Set your cuts.</strong> Use Chunk mode for equal time-based sections, or Manual mode to place and adjust cuts on the waveform.</li>
+                <li><strong>Export segments.</strong> Reorder or select the parts you need, choose MP3, WAV, or OGG, and download them in a ZIP.</li>
+              </ol>
+            </section>
+            <section class="landing-detail">
+              <h2>Time-based chunks and manual edits</h2>
+              <p>Chunk mode includes 30-second, 1-minute, 5-minute, 10-minute, 15-minute, and 30-minute presets, plus a custom duration in seconds. In Manual mode, use the blade tool to mark edit points, preview the audio, and rename, reorder, enable, or select segments before export.</p>
+            </section>
+            <section class="landing-detail">
+              <h2>Supported formats and private processing</h2>
+              <p>Open MP3, WAV, OGG, FLAC, M4A, and AAC audio files supported by your browser. Export the edited segments as MP3, WAV, or OGG. Audio decoding and conversion run locally in your browser; the app does not upload your audio to a server.</p>
+            </section>
+            <section class="landing-detail">
+              <h2>Before you edit</h2>
+              <p>Codec support varies by browser, and very large recordings can need more memory and processing time. Keep the tab open while the browser decodes your audio and creates the ZIP download.</p>
+            </section>
+            <p class="landing-source">Chunk Audio is open source under the MIT License. <a href="https://github.com/briansunter/chunk-audio">View the source code on GitHub</a>.</p>
+          </div>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

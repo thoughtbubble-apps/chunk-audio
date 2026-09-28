@@ -277,12 +277,13 @@ export default function App() {
 					<section className="landing-shell">
 						<div className="landing-copy">
 							<p className="landing-kicker">In-browser audio tools</p>
-							<h2 className="landing-title">
-								Split, edit, and export audio — privately
-							</h2>
+							<h1 className="landing-title">
+								Split and edit audio in your browser
+							</h1>
 							<p className="landing-description">
-								Drop a file, place cuts with the blade tool, rearrange segments,
-								then export as ZIP. Everything runs locally via WebAssembly.
+								Chunk Audio is a browser-based audio splitter and editor. Divide
+								long recordings into time-based chunks or make precise cuts on a
+								waveform, arrange segments, and download your work as a ZIP.
 							</p>
 						</div>
 
@@ -319,6 +320,62 @@ export default function App() {
 									single ZIP.
 								</p>
 							</article>
+						</div>
+
+						<div className="landing-details">
+							<section className="landing-detail">
+								<h2>How to split an audio file</h2>
+								<ol className="landing-steps">
+									<li>
+										<strong>Choose a file.</strong> Open an audio recording from
+										your device. The editor reads it in your browser.
+									</li>
+									<li>
+										<strong>Set your cuts.</strong> Use Chunk mode for equal
+										time-based sections, or Manual mode to place and adjust cuts
+										on the waveform.
+									</li>
+									<li>
+										<strong>Export segments.</strong> Reorder or select the
+										parts you need, choose MP3, WAV, or OGG, and download them
+										in a ZIP.
+									</li>
+								</ol>
+							</section>
+							<section className="landing-detail">
+								<h2>Time-based chunks and manual edits</h2>
+								<p>
+									Chunk mode includes 30-second, 1-minute, 5-minute, 10-minute,
+									15-minute, and 30-minute presets, plus a custom duration in
+									seconds. In Manual mode, use the blade tool to mark edit
+									points, preview the audio, and rename, reorder, enable, or
+									select segments before export.
+								</p>
+							</section>
+							<section className="landing-detail">
+								<h2>Supported formats and private processing</h2>
+								<p>
+									Open MP3, WAV, OGG, FLAC, M4A, and AAC audio files supported
+									by your browser. Export the edited segments as MP3, WAV, or
+									OGG. Audio decoding and conversion run locally in your
+									browser; the app does not upload your audio to a server.
+								</p>
+							</section>
+							<section className="landing-detail">
+								<h2>Before you edit</h2>
+								<p>
+									Codec support varies by browser, and very large recordings can
+									need more memory and processing time. Keep the tab open while
+									the browser decodes your audio and creates the ZIP download.
+								</p>
+							</section>
+							<p className="landing-source">
+								Chunk Audio is open source under the MIT License.{" "}
+								<a href="https://github.com/briansunter/chunk-audio">
+									View the source code on GitHub
+								</a>
+								.
+							</p>
 						</div>
 					</section>
 				) : (
