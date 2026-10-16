@@ -1,22 +1,17 @@
-name: Trusted existing Worker delivery
-# Source-only candidate. The literal trusted-route sentinel is intentionally
-# unschedulable. No private fleet fallback or activation is configured.
-on:
-  workflow_run:
-    workflows: ['Cloudflare delivery']
-    types: [completed]
+# Source-only. Every controller job stays on the held trusted route; checks-only profile is source workflow only.
+name: Permanent existing Worker staging
 permissions: {}
 concurrency:
-  group: chunk-audio-existing-worker-delivery
+  group: chunk-audio-permanent-staging
   cancel-in-progress: false
 jobs:
   context:
     name: chunk-audio / existing environment readiness
-    if: >-
-      github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'))
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074'
+      && github.ref == 'refs/heads/master' && github.event.repository.id == 669344920 && github.event.repository.owner.id == 316414074 && github.event.repository.private == false
     runs-on:
-      group: approved-public-ci
-      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+      group: trusted-worker-delivery-onboarding-required
+      labels: trusted-worker-delivery-onboarding-required
     timeout-minutes: 5
     permissions:
       contents: read
@@ -25,35 +20,40 @@ jobs:
       environment_id: ${{ steps.environment.outputs.environment_id }}
       environment_policy_hash: ${{ steps.environment.outputs.environment_policy_hash }}
     steps:
-      - name: Verify isolated runner
-        run: |
-          test "$(uname -s)" = Linux
-          test "$(id -u)" -ne 0
-          test ! -S /var/run/docker.sock
-          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: thoughtbubble-apps/chunk-audio
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24.18.0'
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.2'
-      - name: Install trusted ZIP tooling without hooks
-        run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
-      - name: Read existing exact environment policy without declaring it
-        id: environment
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/cd/controller.mjs environment
+    - name: Verify isolated runner
+      run: 'test "$(uname -s)" = Linux
+
+        test "$(id -u)" -ne 0
+
+        test ! -S /var/run/docker.sock
+
+        test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        '
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: thoughtbubble-apps/chunk-audio
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.18.0
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: 1.4.2
+    - name: Install trusted ZIP tooling without hooks
+      run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+    - name: Read existing exact environment policy without declaring it
+      id: environment
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: node scripts/cd/controller.mjs environment
   delivery:
     name: chunk-audio / trusted existing Worker upload
-    needs: [context]
-    if: >-
-      github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'))
+    needs:
+    - context
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074'
+      && github.ref == 'refs/heads/master' && github.event.repository.id == 669344920 && github.event.repository.owner.id == 316414074 && github.event.repository.private == false
     runs-on:
       group: trusted-worker-delivery-onboarding-required
       labels: trusted-worker-delivery-onboarding-required
@@ -64,83 +64,101 @@ jobs:
     outputs:
       source_sha: ${{ steps.source.outputs.source_sha }}
       preview_url: ${{ steps.source.outputs.preview_url }}
+      deployment_id: ${{ steps.upload.outputs.deployment_id }}
+      version_id: ${{ steps.upload.outputs.version_id }}
+      provider_fingerprint: ${{ steps.upload.outputs.provider_fingerprint }}
     steps:
-      - name: Verify isolated runner
-        run: |
-          test "$(uname -s)" = Linux
-          test "$(id -u)" -ne 0
-          test ! -S /var/run/docker.sock
-          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: thoughtbubble-apps/chunk-audio
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24.18.0'
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.2'
-      - name: Install trusted ZIP tooling without hooks
-        run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
-      - name: Validate exact current source and complete artifact
-        id: source
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/cd/controller.mjs prepare
-      - name: Upload once to the exact existing selected Worker
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKER_DELIVERY_TOKEN }}
-          EXPECTED_ENVIRONMENT_ID: ${{ needs.context.outputs.environment_id }}
-          EXPECTED_ENVIRONMENT_POLICY_HASH: ${{ needs.context.outputs.environment_policy_hash }}
-        run: node scripts/cd/controller.mjs upload
+    - name: Verify isolated runner
+      run: 'test "$(uname -s)" = Linux
+
+        test "$(id -u)" -ne 0
+
+        test ! -S /var/run/docker.sock
+
+        test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        '
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: thoughtbubble-apps/chunk-audio
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.18.0
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: 1.4.2
+    - name: Install trusted ZIP tooling without hooks
+      run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+    - name: Validate exact current source and complete artifact
+      id: source
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: node scripts/cd/controller.mjs prepare
+    - name: Upload once to the exact existing selected Worker
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKER_DELIVERY_TOKEN }}
+        EXPECTED_ENVIRONMENT_ID: ${{ needs.context.outputs.environment_id }}
+        EXPECTED_ENVIRONMENT_POLICY_HASH: ${{ needs.context.outputs.environment_policy_hash }}
+      run: node scripts/cd/controller.mjs upload
+      id: upload
   acceptance:
     name: chunk-audio / hosted synthetic core flow
-    needs: [delivery]
-    if: >-
-      github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'))
+    needs:
+    - delivery
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074'
+      && github.ref == 'refs/heads/master' && github.event.repository.id == 669344920 && github.event.repository.owner.id == 316414074 && github.event.repository.private == false
     runs-on:
-      group: approved-public-ci
-      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+      group: trusted-worker-delivery-onboarding-required
+      labels: trusted-worker-delivery-onboarding-required
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read
     steps:
-      - name: Verify isolated runner
-        run: |
-          test "$(uname -s)" = Linux
-          test "$(id -u)" -ne 0
-          test ! -S /var/run/docker.sock
-          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: thoughtbubble-apps/chunk-audio
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24.18.0'
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.2'
-      - name: Install trusted ZIP tooling without hooks
-        run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
-      - name: Revalidate and extract source artifact as data
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/cd/controller.mjs prepare
-      - run: bun install --frozen-lockfile
-      - run: bunx playwright install chromium
-      - name: Verify exact public bytes and real fixture core flow
-        run: node scripts/cd/acceptance.mjs
+    - name: Verify isolated runner
+      run: 'test "$(uname -s)" = Linux
+
+        test "$(id -u)" -ne 0
+
+        test ! -S /var/run/docker.sock
+
+        test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        '
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: thoughtbubble-apps/chunk-audio
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.18.0
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: 1.4.2
+    - name: Install trusted ZIP tooling without hooks
+      run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+    - name: Revalidate and extract source artifact as data
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: node scripts/cd/controller.mjs prepare
+    - run: bun install --frozen-lockfile
+    - run: bunx playwright install chromium
+    - name: Verify exact public bytes and real fixture core flow
+      run: node scripts/cd/acceptance.mjs
   required:
     name: worker-delivery-required
-    needs: [context, delivery, acceptance]
-    if: >-
-      always() && (github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master')))
+    needs:
+    - context
+    - delivery
+    - acceptance
+    - attestation
+    if: always() && (github.event_name == 'workflow_dispatch' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id
+      == '316414074' && github.ref == 'refs/heads/master' && github.event.repository.id == 669344920 && github.event.repository.owner.id == 316414074 && github.event.repository.private
+      == false)
     runs-on:
       group: trusted-worker-delivery-onboarding-required
       labels: trusted-worker-delivery-onboarding-required
@@ -151,28 +169,95 @@ jobs:
       statuses: write
       pull-requests: write
     steps:
-      - name: Verify isolated runner
-        run: |
-          test "$(uname -s)" = Linux
-          test "$(id -u)" -ne 0
-          test ! -S /var/run/docker.sock
-          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: thoughtbubble-apps/chunk-audio
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24.18.0'
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.2'
-      - name: Install trusted ZIP tooling without hooks
-        run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
-      - name: Publish separate exact-source delivery result
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          DELIVERY_RESULT: ${{ needs.delivery.result }}
-          ACCEPTANCE_RESULT: ${{ needs.acceptance.result }}
-        run: node scripts/cd/controller.mjs publish
+    - name: Verify isolated runner
+      run: 'test "$(uname -s)" = Linux
+
+        test "$(id -u)" -ne 0
+
+        test ! -S /var/run/docker.sock
+
+        test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        '
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: thoughtbubble-apps/chunk-audio
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.18.0
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: 1.4.2
+    - name: Install trusted ZIP tooling without hooks
+      run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+    - name: Publish separate exact-source delivery result
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        DELIVERY_RESULT: ${{ needs.delivery.result }}
+        ACCEPTANCE_RESULT: ${{ needs.acceptance.result }}
+        ATTESTATION_RESULT: ${{ needs.attestation.result }}
+      run: node scripts/cd/controller.mjs publish
+  attestation:
+    name: chunk-audio / final permanent staging identity
+    needs:
+    - delivery
+    - acceptance
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074'
+      && github.ref == 'refs/heads/master' && github.event.repository.id == 669344920 && github.event.repository.owner.id == 316414074 && github.event.repository.private == false
+    runs-on:
+      group: trusted-worker-delivery-onboarding-required
+      labels: trusted-worker-delivery-onboarding-required
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - name: Verify isolated runner
+      run: 'test "$(uname -s)" = Linux
+
+        test "$(id -u)" -ne 0
+
+        test ! -S /var/run/docker.sock
+
+        test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        '
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: thoughtbubble-apps/chunk-audio
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.18.0
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: 1.4.2
+    - name: Install trusted ZIP tooling without hooks
+      run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+    - name: Validate exact current source and complete artifact
+      id: source
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: node scripts/cd/controller.mjs prepare
+    - name: Re-read exact staging resource and active selected version after acceptance
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKER_DELIVERY_TOKEN }}
+        EXPECTED_DEPLOYMENT_ID: ${{ needs.delivery.outputs.deployment_id }}
+        EXPECTED_VERSION_ID: ${{ needs.delivery.outputs.version_id }}
+        EXPECTED_PROVIDER_FINGERPRINT: ${{ needs.delivery.outputs.provider_fingerprint }}
+      run: node scripts/cd/controller.mjs attest
+'on':
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact full tested source head SHA (not synthetic merge)
+        required: true
+        type: string
+      source_run_id:
+        description: Successful source CI run ID for that exact revision
+        required: true
+        type: string

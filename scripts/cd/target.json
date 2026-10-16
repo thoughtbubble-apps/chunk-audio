@@ -60,5 +60,16 @@
     "prNumber": 8,
     "baseRef": "codex/cloudflare-delivery",
     "headRef": "codex/trusted-worker-delivery-source"
+  },
+  "repositoryPrivate": false,
+  "staging": {
+    "permanent": true,
+    "cleanup": false,
+    "workerName": "chunk-audio-pr-7",
+    "targetPrNumber": 7,
+    "accountId": "39294887f3cbf359bcdce0d9326f9382",
+    "origin": "https://chunk-audio-pr-7.bsunter.workers.dev",
+    "scriptTag": "537b10e33d8746ac97f06cb663161ca9",
+    "createdOn": "2026-10-16T00:22:59.91356Z"
   }
 }

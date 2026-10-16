@@ -51,7 +51,7 @@ export async function readEnvironment(t, c, api) {
   const get = path => api(path, {method: 'GET'});
   const repository = await get(prefix);
   assert.equal(repository.id, t.repositoryId); assert.equal(repository.owner?.id, t.ownerId);
-  assert.equal(repository.full_name, t.repository); assert.equal(repository.private, false);
+  assert.equal(repository.full_name, t.repository); assert.equal(repository.private, t.repositoryPrivate??false);
   assert.equal(repository.default_branch, 'master');
   const defaultRef = `${prefix}/git/ref/heads/master`;
   assert.equal((await get(defaultRef)).object?.sha, c.controllerSha);

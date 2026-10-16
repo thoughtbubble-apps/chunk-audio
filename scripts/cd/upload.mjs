@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {join,extname} from 'node:path';
 import {hash,validateDirectory} from '../release/artifact.mjs';
+import {validateScriptIdentity} from './staging.mjs';
 import {productionTarget,selectTarget} from './policy.mjs';
 export function effectiveObservability(value){
  const fallback=(v,d)=>v===undefined?d:v;const keys=(v,allowed)=>{assert(v&&typeof v==='object'&&!Array.isArray(v),'Observability policy required');assert(Object.keys(v).every(k=>allowed.includes(k)),'Unknown observability field')};keys(value,['enabled','head_sampling_rate','redact_query_string','logs','traces']);assert.equal(value.enabled,true);assert.equal(value.redact_query_string,true);assert.equal(fallback(value.head_sampling_rate,1),1);keys(value.logs,['enabled','head_sampling_rate','persist','invocation_logs']);assert.equal(value.logs.enabled,true);assert.equal(value.logs.invocation_logs,true);assert.equal(fallback(value.logs.head_sampling_rate,1),1);assert.equal(fallback(value.logs.persist,true),true);const traces=fallback(value.traces,{enabled:false});keys(traces,['enabled','persist','head_sampling_rate']);assert.equal(traces.enabled,false);assert.equal(fallback(traces.persist,true),true);assert.equal(fallback(traces.head_sampling_rate,1),1);return {enabled:true,head_sampling_rate:1,redact_query_string:true,logs:{enabled:true,head_sampling_rate:1,persist:true,invocation_logs:true},traces:{enabled:false,persist:true,head_sampling_rate:1}};
@@ -20,7 +21,7 @@ export function validateExisting(t,c,s){
  assert.deepEqual(effectiveObservability(s.settings.observability),effectiveObservability(t.observability),'Observability drift');
  return {deploymentId:active.id,versionId:active.versions[0].version_id,sourceSha:sha.text,fingerprint:hash(Buffer.from(JSON.stringify(s)))};
 }
-async function snapshot(t,c,api){const p=`/accounts/${t.accountId}/workers/scripts/${c.workerName}`;const s={};for(const key of ['settings','deployments','subdomain','schedules'])s[key]=await api('GET',`${p}/${key}`);return {state:s,identity:validateExisting(t,c,s)}}
+export async function snapshot(t,c,api){const p=`/accounts/${t.accountId}/workers/scripts/${c.workerName}`;const s={};if(t.staging){s.service=await api('GET',`/accounts/${t.accountId}/workers/services/${c.workerName}`);validateScriptIdentity(t,s.service)}for(const key of ['settings','deployments','subdomain','schedules'])s[key]=await api('GET',`${p}/${key}`);return {state:s,identity:validateExisting(t,c,s)}}
 export async function uploadExisting(t,c,root,api,receipt={}){
  selectTarget(t,c);const manifest=await validateDirectory(t,root,c);const before=await snapshot(t,c,api);
  Object.assign(receipt,{sourcePrNumber:c.sourcePrNumber,sourceHeadRef:c.sourceHeadRef,targetPrNumber:c.targetPrNumber,workerName:c.workerName,sourceSha:c.sourceSha,artifactDigest:c.artifactDigest,previousDeploymentId:before.identity.deploymentId,previousVersionId:before.identity.versionId,uploadAttempted:false,providerVerified:false});
@@ -32,5 +33,5 @@ export async function uploadExisting(t,c,root,api,receipt={}){
  // The uploaded module is data. No import, require, eval, subprocess or project
  // config is evaluated here. One attempt only: unknown remote outcome is retained.
  await api('PUT',path,form);
- const after=await snapshot(t,c,api);assert.equal(after.identity.sourceSha,c.sourceSha);assert.notEqual(after.identity.deploymentId,before.identity.deploymentId,'New exact deployment missing');assert.notEqual(after.identity.versionId,before.identity.versionId,'New exact version missing');await validateDirectory(t,root,c);Object.assign(receipt,{deploymentId:after.identity.deploymentId,versionId:after.identity.versionId,providerVerified:true});return receipt;
+ const after=await snapshot(t,c,api);assert.equal(after.identity.sourceSha,c.sourceSha);assert.notEqual(after.identity.deploymentId,before.identity.deploymentId,'New exact deployment missing');assert.notEqual(after.identity.versionId,before.identity.versionId,'New exact version missing');await validateDirectory(t,root,c);Object.assign(receipt,{deploymentId:after.identity.deploymentId,versionId:after.identity.versionId,fingerprint:after.identity.fingerprint,providerVerified:true});return receipt;
 }
