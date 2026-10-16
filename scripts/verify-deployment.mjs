@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
+import {waitForVersion} from "./wait-version.mjs";
 import {execFileSync} from "node:child_process";
 const url = process.env.DEPLOY_URL;
 assert.ok(url, "DEPLOY_URL is required");
 const sha=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
-const version=await fetch(`${url}/__version`);
-assert.equal(version.status,200); assert.equal((await version.json()).sha,sha);
+await waitForVersion(url,sha);
 const response=await fetch(url);
 assert.equal(response.status,200); assert.equal(response.headers.get("x-deployed-sha"),sha);
 assert.match(await response.text(), /<!doctype html/i);

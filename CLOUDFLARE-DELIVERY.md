@@ -9,3 +9,5 @@ PRs from this repository run **Build and runtime tests**, then **Deploy and veri
 For a direct preview with existing local Wrangler OAuth: prepare the numeric PR target with `node scripts/prepare-delivery.mjs preview N`, build, then `bunx wrangler deploy`. Run `DEPLOY_URL=https://chunk-audio-pr-N.bsunter.workers.dev node scripts/verify-deployment.mjs`. Restore the committed config afterwards.
 
 Local acceptance uses generated audio only: cross-origin isolation, same-origin ffmpeg core, actual chunk conversion, a nonempty MP3 inside the downloaded ZIP, and SPA navigation. The initial untouched default Manual mode with no cuts produced an empty ZIP during investigation; that existing editor edge is not fixed or counted as passing manual-editor acceptance. Generated ffmpeg assets are copied into `public/ffmpeg` before both development and production builds.
+
+Version readiness tolerates propagation with bounded GET-only retries and accepts only the expected source SHA. It fails closed at timeout; it never retries uploads or deployments. Regression tests cover transient 404/stale-source responses and permanent source mismatch using a local HTTP fixture.
