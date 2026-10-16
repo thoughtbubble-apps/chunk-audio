@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chunk-audio",
+  "account_id": "39294887f3cbf359bcdce0d9326f9382",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "redact_query_string": true
+  },
+  "vars": {
+    "DEPLOYED_SHA": "local",
+    "CANONICAL_HOST": "chunkaudio.briansunter.com"
+  }
+}
