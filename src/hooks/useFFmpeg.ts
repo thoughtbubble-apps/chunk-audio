@@ -9,7 +9,7 @@ export function useFFmpeg() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		const ffmpeg = createFFmpeg({ log: true });
+		const ffmpeg = createFFmpeg({ log: true, corePath: new URL("/ffmpeg/ffmpeg-core.js", window.location.origin).href });
 		ffmpegRef.current = ffmpeg;
 
 		ffmpeg.setProgress(({ ratio }) => {

@@ -1,0 +1,95 @@
+name: Cloudflare delivery
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+permissions: {}
+concurrency:
+  group: delivery-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  checks:
+    name: chunk-audio / build and core flow
+    if: github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920))
+    runs-on:
+      group: approved-public-ci
+      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Verify runner isolation
+        run: |
+          test "$(uname -s)" = Linux
+          test "$(id -u)" -ne 0
+          test ! -S /var/run/docker.sock
+          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.2'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - run: bun test tests/workflow-safety.test.mjs
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bun run test:worker
+      - name: Install Chromium
+        run: bunx playwright install chromium
+      - name: Browser core flow on local Worker
+        run: bun run test:browser
+      - name: Prepare isolated target and source identity
+        env:
+          MODE: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/prepare-delivery.mjs "$MODE" "$PR_NUMBER"
+      - run: bunx wrangler deploy --config wrangler.jsonc --dry-run
+      - run: node scripts/build-manifest.mjs
+      - name: Preserve immutable validated build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: build-${{ github.event.pull_request.head.sha || github.sha }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/
+            wrangler.jsonc
+            .delivery-manifest.json
+  # No trusted deployment route has been accepted. This job carries no secrets
+  # and deliberately blocks ci-required until a separately reviewed handoff.
+  deploy:
+    name: chunk-audio / deploy exact tested SHA
+    if: github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920))
+    needs: checks
+    runs-on:
+      group: approved-public-ci
+      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Trusted deployment route required
+        run: |
+          echo '::error::Trusted deployment route required; the public build profile cannot receive provider credentials.'
+          echo 'Deployment remains blocked pending a separately reviewed identity and execution route. No credentials or runner labels are configured by this workflow.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+  required:
+    name: ci-required
+    if: always() && (github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920)))
+    needs: [checks, deploy]
+    runs-on:
+      group: approved-public-ci
+      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+    timeout-minutes: 5
+    steps:
+      - env:
+          CHECKS: ${{ needs.checks.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+        run: test "$CHECKS" = success && test "$DEPLOY" = success

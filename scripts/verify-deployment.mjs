@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import {waitForVersion} from "./wait-version.mjs";
+import {execFileSync} from "node:child_process";
+const url = process.env.DEPLOY_URL;
+assert.ok(url, "DEPLOY_URL is required");
+const sha=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
+await waitForVersion(url,sha);
+const response=await fetch(url);
+assert.equal(response.status,200); assert.equal(response.headers.get("x-deployed-sha"),sha);
+assert.match(await response.text(), /<!doctype html/i);
+assert.equal(response.headers.get("cross-origin-opener-policy"),"same-origin");
+assert.equal(response.headers.get("cross-origin-embedder-policy"),"require-corp");
+console.log(JSON.stringify({url,sha,version:"passed",publicShell:"passed",coreFlow:"requires browser acceptance"}));
+const deep=await fetch(`${url}/preview-route`, {headers:{accept:"text/html"}});
+assert.equal(deep.status,200); assert.match(await deep.text(), /<!doctype html/i);
+const wasm=await fetch(`${url}/ffmpeg/ffmpeg-core.wasm`);
+assert.equal(wasm.status,200); assert.match(wasm.headers.get("content-type"), /wasm/);
+assert.equal(wasm.headers.get("cross-origin-embedder-policy"),"require-corp");

@@ -25,3 +25,13 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+.wrangler/
+node_modules/
+
+test-results/
+playwright-report/
+
+public/ffmpeg/
+
+.delivery-manifest.json
