@@ -10,8 +10,48 @@ concurrency:
   group: chunk-audio-existing-worker-delivery
   cancel-in-progress: false
 jobs:
+  context:
+    name: chunk-audio / existing environment readiness
+    if: >-
+      github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'))
+    runs-on:
+      group: approved-public-ci
+      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      environment_id: ${{ steps.environment.outputs.environment_id }}
+      environment_policy_hash: ${{ steps.environment.outputs.environment_policy_hash }}
+    steps:
+      - name: Verify isolated runner
+        run: |
+          test "$(uname -s)" = Linux
+          test "$(id -u)" -ne 0
+          test ! -S /var/run/docker.sock
+          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: thoughtbubble-apps/chunk-audio
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24.18.0'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.2'
+      - name: Install trusted ZIP tooling without hooks
+        run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+      - name: Read existing exact environment policy without declaring it
+        id: environment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/cd/controller.mjs environment
   delivery:
     name: chunk-audio / trusted existing Worker upload
+    needs: [context]
     if: >-
       github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'))
     runs-on:
@@ -53,6 +93,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKER_DELIVERY_TOKEN }}
+          EXPECTED_ENVIRONMENT_ID: ${{ needs.context.outputs.environment_id }}
+          EXPECTED_ENVIRONMENT_POLICY_HASH: ${{ needs.context.outputs.environment_policy_hash }}
         run: node scripts/cd/controller.mjs upload
   acceptance:
     name: chunk-audio / hosted synthetic core flow
@@ -96,7 +138,7 @@ jobs:
         run: node scripts/cd/acceptance.mjs
   required:
     name: worker-delivery-required
-    needs: [delivery, acceptance]
+    needs: [context, delivery, acceptance]
     if: >-
       always() && (github.event_name == 'workflow_run' && github.repository == 'thoughtbubble-apps/chunk-audio' && github.repository_id == '669344920' && github.repository_owner_id == '316414074' && github.event.repository.id == 669344920 && github.event.repository.private == false && github.event.workflow_run.head_repository.id == 669344920 && github.event.workflow_run.head_repository.private == false && github.event.workflow_run.head_repository.owner.id == 316414074 && github.event.workflow_run.workflow_id == 386129888 && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].head.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.repo.id == 669344920 && github.event.workflow_run.pull_requests[0].base.ref == 'master') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master')))
     runs-on:
