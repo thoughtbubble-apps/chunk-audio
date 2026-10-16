@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict';
+import {identity} from '../release/artifact.mjs';
+const sha=s=>assert(typeof s==='string'&&/^[a-f0-9]{40}$/.test(s),'Full SHA required');
+export function productionTarget(t){assert.equal(t.productionEnabled,true,'Production is disabled; existing target must be separately reconciled');return t.productionName}
+export function authorize(t,f){
+ const {event,repository,run,artifact:a,pr,controllerSha,defaultSha}=f;
+ for(const r of [event.repository,repository,run.repository,run.head_repository,event.workflow_run.head_repository]){assert.equal(r.id,t.repositoryId);assert.equal(r.private,false);assert.equal(r.owner.id,t.ownerId);assert.equal(r.full_name,t.repository)}
+ assert.equal(event.action,'completed');assert.equal(event.workflow_run.id,run.id);assert.equal(event.workflow_run.run_attempt,run.run_attempt);assert.equal(run.workflow_id,t.workflowId);assert.equal(run.path,t.workflowPath);assert.equal(run.name,t.workflowName);assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');assert(['pull_request','push'].includes(run.event));
+ sha(run.head_sha);sha(controllerSha);sha(defaultSha);assert.equal(controllerSha,defaultSha,'Controller no longer current default');sha(f.sourceWorkflowBlob);assert.equal(f.sourceWorkflowBlob,f.controllerWorkflowBlob,'PR-controlled source workflow rejected');
+ let prNumber,baseSha=defaultSha;
+ if(run.event==='pull_request'){
+  assert.equal(run.pull_requests.length,1);const rp=run.pull_requests[0];assert.equal(pr.number,rp.number);assert.equal(pr.state,'open');for(const ref of [rp.head,rp.base])assert.equal(ref.repo.id,t.repositoryId);for(const ref of [pr.head,pr.base]){assert.equal(ref.repo.id,t.repositoryId);assert.equal(ref.repo.owner.id,t.ownerId);assert.equal(ref.repo.private,false)}assert.equal(pr.base.ref,t.branch);assert.equal(rp.base.ref,t.branch);assert.equal(pr.head.sha,run.head_sha);assert.equal(rp.head.sha,run.head_sha);assert.equal(pr.base.sha,rp.base.sha);assert.equal(pr.base.sha,defaultSha);prNumber=pr.number;baseSha=pr.base.sha;
+ }else{
+  assert.equal(run.head_branch,t.branch);assert.equal(run.head_sha,defaultSha);const mp=f.mergedPr;assert(mp&&mp.merged===true&&mp.merge_commit_sha===run.head_sha,'Unique exact merged PR required for push preview');assert.equal(mp.base.ref,t.branch);for(const ref of [mp.base,mp.head])assert.equal(ref.repo.id,t.repositoryId);prNumber=mp.number;
+ }
+ assert(Number.isSafeInteger(prNumber)&&prNumber>0);const workerName=t.previewTargets[String(prNumber)];assert(workerName&&workerName===`${t.service}-pr-${prNumber}`,'PR has no reviewed existing target');
+ assert(Number.isSafeInteger(a.id)&&a.id>0);assert.equal(a.name,`worker-${run.head_sha}-${run.id}-${run.run_attempt}`);assert.equal(a.expired,false);assert(Number.isSafeInteger(a.size_in_bytes)&&a.size_in_bytes>0&&a.size_in_bytes<=512*1024**2);assert(/^sha256:[a-f0-9]{64}$/.test(a.digest));assert.equal(a.workflow_run.id,run.id);assert.equal(a.workflow_run.repository_id,t.repositoryId);assert.equal(a.workflow_run.head_repository_id,t.repositoryId);assert.equal(a.workflow_run.head_sha,run.head_sha);
+ const c={sourceSha:run.head_sha,runId:run.id,attempt:run.run_attempt,prNumber:run.event==='pull_request'?prNumber:null,associatedPr:prNumber,baseSha,controllerSha,kind:run.event,artifactId:a.id,artifactDigest:a.digest.slice(7),workerName};identity(c);return c;
+}

@@ -1,0 +1,23 @@
+{
+  "service": "chunk-audio",
+  "repository": "thoughtbubble-apps/chunk-audio",
+  "repositoryId": 669344920,
+  "ownerId": 316414074,
+  "branch": "master",
+  "workflowId": 386129888,
+  "workflowName": "Cloudflare delivery",
+  "workflowPath": ".github/workflows/cloudflare.yml",
+  "accountId": "39294887f3cbf359bcdce0d9326f9382",
+  "canonicalHost": "chunkaudio.briansunter.com",
+  "compatibilityDate": "2026-10-01",
+  "productionEnabled": false,
+  "productionName": "chunk-audio",
+  "previewTargets": {"7": "chunk-audio-pr-7"},
+  "assetDirectory": "dist",
+  "assetRoots": ["index.html", "_headers", "favicon.ico", "logo192.png", "logo512.png", "manifest.json", "og-chunk-audio.png", "robots.txt", "sitemap.xml"],
+  "assetDirectories": ["assets", "ffmpeg"],
+  "assetMetadata": {"_headers": "/*\n    Cross-Origin-Opener-Policy: same-origin\n    Cross-Origin-Embedder-Policy: require-corp"},
+  "responseHeaders": {"cross-origin-opener-policy": "same-origin", "cross-origin-embedder-policy": "require-corp"},
+  "observability": {"enabled": true, "logs": {"enabled": true, "invocation_logs": true}, "redact_query_string": true},
+  "lighthouse": false
+}
