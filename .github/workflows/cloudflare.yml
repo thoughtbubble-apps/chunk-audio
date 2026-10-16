@@ -1,7 +1,7 @@
 name: Cloudflare delivery
 on:
   pull_request:
-    branches: [master]
+    branches: [master, codex/cloudflare-delivery]
   push:
     branches: [master]
 permissions: {}
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   checks:
     name: chunk-audio / build and core flow
-    if: github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920))
+    if: github.repository_id == '669344920' && ((github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920 && (github.event.pull_request.base.ref == 'master' || (github.event.pull_request.number == 8 && github.event.pull_request.base.ref == 'codex/cloudflare-delivery' && github.event.pull_request.head.ref == 'codex/trusted-worker-delivery-source'))))
     runs-on:
       group: approved-public-ci
       labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24.18.0'
-      - run: bun test tests/workflow-safety.test.mjs
+      - run: bun test tests/workflow-safety.test.mjs tests/source-admission.test.ts
       - run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
       - run: node --test scripts/release/*.test.mjs scripts/cd/*.test.mjs
       - run: bun test scripts/cd/workflow.test.ts
@@ -62,7 +62,7 @@ jobs:
           retention-days: 7
   required:
     name: ci-required
-    if: always() && (github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920)))
+    if: always() && (github.repository_id == '669344920' && ((github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920 && (github.event.pull_request.base.ref == 'master' || (github.event.pull_request.number == 8 && github.event.pull_request.base.ref == 'codex/cloudflare-delivery' && github.event.pull_request.head.ref == 'codex/trusted-worker-delivery-source')))))
     needs: [checks]
     runs-on:
       group: approved-public-ci

@@ -12,12 +12,53 @@
   "compatibilityDate": "2026-10-01",
   "productionEnabled": false,
   "productionName": "chunk-audio",
-  "previewTargets": {"7": "chunk-audio-pr-7"},
   "assetDirectory": "dist",
-  "assetRoots": ["index.html", "_headers", "favicon.ico", "logo192.png", "logo512.png", "manifest.json", "og-chunk-audio.png", "robots.txt", "sitemap.xml"],
-  "assetDirectories": ["assets", "ffmpeg"],
-  "assetMetadata": {"_headers": "/*\n    Cross-Origin-Opener-Policy: same-origin\n    Cross-Origin-Embedder-Policy: require-corp"},
-  "responseHeaders": {"cross-origin-opener-policy": "same-origin", "cross-origin-embedder-policy": "require-corp"},
-  "observability": {"enabled": true, "logs": {"enabled": true, "invocation_logs": true}, "redact_query_string": true},
-  "lighthouse": false
+  "assetRoots": [
+    "index.html",
+    "_headers",
+    "favicon.ico",
+    "logo192.png",
+    "logo512.png",
+    "manifest.json",
+    "og-chunk-audio.png",
+    "robots.txt",
+    "sitemap.xml"
+  ],
+  "assetDirectories": [
+    "assets",
+    "ffmpeg"
+  ],
+  "assetMetadata": {
+    "_headers": "/*\n    Cross-Origin-Opener-Policy: same-origin\n    Cross-Origin-Embedder-Policy: require-corp"
+  },
+  "responseHeaders": {
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-embedder-policy": "require-corp"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "redact_query_string": true
+  },
+  "lighthouse": false,
+  "sourceTargets": {
+    "7": {
+      "targetPrNumber": 7,
+      "workerName": "chunk-audio-pr-7",
+      "headRef": "codex/cloudflare-delivery"
+    },
+    "8": {
+      "targetPrNumber": 7,
+      "workerName": "chunk-audio-pr-7",
+      "headRef": "codex/trusted-worker-delivery-source"
+    }
+  },
+  "stackedSource": {
+    "prNumber": 8,
+    "baseRef": "codex/cloudflare-delivery",
+    "headRef": "codex/trusted-worker-delivery-source"
+  }
 }
