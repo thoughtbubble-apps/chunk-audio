@@ -12,7 +12,7 @@ jobs:
   checks:
     name: chunk-audio / build and core flow
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: thoughtbubble-ci-prod
+    runs-on: ${{ vars.PUBLIC_CI_RUNNER_LABEL && !startsWith(vars.PUBLIC_CI_RUNNER_LABEL, 'thoughtbubble-ci') && vars.PUBLIC_CI_RUNNER_LABEL || 'public-ci-onboarding-required' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -63,7 +63,7 @@ jobs:
   deploy:
     name: chunk-audio / deploy exact tested SHA
     needs: checks
-    runs-on: thoughtbubble-ci-prod
+    runs-on: ${{ vars.PUBLIC_CI_RUNNER_LABEL && !startsWith(vars.PUBLIC_CI_RUNNER_LABEL, 'thoughtbubble-ci') && vars.PUBLIC_CI_RUNNER_LABEL || 'public-ci-onboarding-required' }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -102,7 +102,7 @@ jobs:
     name: ci-required
     if: always()
     needs: [checks, deploy]
-    runs-on: thoughtbubble-ci-prod
+    runs-on: ${{ vars.PUBLIC_CI_RUNNER_LABEL && !startsWith(vars.PUBLIC_CI_RUNNER_LABEL, 'thoughtbubble-ci') && vars.PUBLIC_CI_RUNNER_LABEL || 'public-ci-onboarding-required' }}
     timeout-minutes: 5
     steps:
       - env:
