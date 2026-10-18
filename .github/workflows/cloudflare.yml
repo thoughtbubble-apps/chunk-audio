@@ -1,7 +1,7 @@
 name: Cloudflare delivery
 on:
   pull_request:
-    branches: [master]
+    branches: [master, codex/cloudflare-delivery]
   push:
     branches: [master]
 permissions: {}
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   checks:
     name: chunk-audio / build and core flow
-    if: github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920))
+    if: github.repository_id == '669344920' && ((github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920 && (github.event.pull_request.base.ref == 'master' || (github.event.pull_request.number == 8 && github.event.pull_request.base.ref == 'codex/cloudflare-delivery' && github.event.pull_request.head.ref == 'codex/trusted-worker-delivery-source'))))
     runs-on:
       group: approved-public-ci
       labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
@@ -36,8 +36,11 @@ jobs:
           bun-version: '1.4.2'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: '24'
-      - run: bun test tests/workflow-safety.test.mjs
+          node-version: '24.18.0'
+      - run: bun test tests/workflow-safety.test.mjs tests/source-admission.test.ts
+      - run: bun install --cwd scripts/cd/tooling --frozen-lockfile --ignore-scripts
+      - run: node --test scripts/release/*.test.mjs scripts/cd/*.test.mjs
+      - run: bun test scripts/cd/workflow.test.ts
       - run: bun install --frozen-lockfile
       - run: bun run build
       - run: bun run test:worker
@@ -45,45 +48,22 @@ jobs:
         run: bunx playwright install chromium
       - name: Browser core flow on local Worker
         run: bun run test:browser
-      - name: Prepare isolated target and source identity
+      - name: Package complete immutable Worker and asset inventory
         env:
-          MODE: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: node scripts/prepare-delivery.mjs "$MODE" "$PR_NUMBER"
-      - run: bunx wrangler deploy --config wrangler.jsonc --dry-run
-      - run: node scripts/build-manifest.mjs
-      - name: Preserve immutable validated build
+        run: node scripts/release/artifact.mjs
+      - name: Preserve digest-bound complete release
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: build-${{ github.event.pull_request.head.sha || github.sha }}
-          include-hidden-files: true
+          name: worker-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release/
           if-no-files-found: error
           retention-days: 7
-          path: |
-            dist/
-            wrangler.jsonc
-            .delivery-manifest.json
-  # No trusted deployment route has been accepted. This job carries no secrets
-  # and deliberately blocks ci-required until a separately reviewed handoff.
-  deploy:
-    name: chunk-audio / deploy exact tested SHA
-    if: github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920))
-    needs: checks
-    runs-on:
-      group: approved-public-ci
-      labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Trusted deployment route required
-        run: |
-          echo '::error::Trusted deployment route required; the public build profile cannot receive provider credentials.'
-          echo 'Deployment remains blocked pending a separately reviewed identity and execution route. No credentials or runner labels are configured by this workflow.' >> "$GITHUB_STEP_SUMMARY"
-          exit 1
   required:
     name: ci-required
-    if: always() && (github.repository_id == '669344920' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920)))
-    needs: [checks, deploy]
+    if: always() && (github.repository_id == '669344920' && ((github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id == 669344920 && github.event.pull_request.head.repo.id == 669344920 && (github.event.pull_request.base.ref == 'master' || (github.event.pull_request.number == 8 && github.event.pull_request.base.ref == 'codex/cloudflare-delivery' && github.event.pull_request.head.ref == 'codex/trusted-worker-delivery-source')))))
+    needs: [checks]
     runs-on:
       group: approved-public-ci
       labels: ${{ vars.PUBLIC_CI_RUNNER_LABEL == 'public-app-ci-prod' && 'public-app-ci-prod' || 'public-ci-onboarding-required' }}
@@ -91,5 +71,4 @@ jobs:
     steps:
       - env:
           CHECKS: ${{ needs.checks.result }}
-          DEPLOY: ${{ needs.deploy.result }}
-        run: test "$CHECKS" = success && test "$DEPLOY" = success
+        run: test "$CHECKS" = success

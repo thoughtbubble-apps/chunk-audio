@@ -35,3 +35,5 @@ playwright-report/
 public/ffmpeg/
 
 .delivery-manifest.json
+
+/release/
